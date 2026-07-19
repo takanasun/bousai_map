@@ -1,0 +1,35 @@
+[
+  {
+    "id": "evac_001",
+    "name": "中央小学校体育館",
+    "address": "神奈川県川崎市川崎区中央町1-1",
+    "location": { "lat": 35.512, "lng": 139.715 },
+    "isEmergencySite": true,
+    "isEvacuationCenter": true,
+    "isWelfareShelter": false,
+    "disasterTypes": ["flood", "earthquake", "fire"],
+    "targetOccupants": ""
+  },
+  {
+    "id": "evac_002",
+    "name": "港福祉避難所（すこやかセンター）",
+    "address": "神奈川県川崎市川崎区港町2-2",
+    "location": { "lat": 35.509, "lng": 139.72 },
+    "isEmergencySite": false,
+    "isEvacuationCenter": true,
+    "isWelfareShelter": true,
+    "disasterTypes": [],
+    "targetOccupants": "要配慮者及びその家族"
+  },
+  {
+    "id": "evac_003",
+    "name": "北部中学校グラウンド",
+    "address": "神奈川県川崎市川崎区北部3-3",
+    "location": { "lat": 35.528, "lng": 139.74 },
+    "isEmergencySite": true,
+    "isEvacuationCenter": false,
+    "isWelfareShelter": false,
+    "disasterTypes": ["earthquake", "tsunami"],
+    "targetOccupants": ""
+  }
+]

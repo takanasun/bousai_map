@@ -1,0 +1,20 @@
+[
+  {
+    "id": "toilet_001",
+    "name": "中央公園公衆便所",
+    "location": { "lat": 35.513, "lng": 139.716 },
+    "attributes": { "accessible": true, "ostomate": true, "open24h": true }
+  },
+  {
+    "id": "toilet_002",
+    "name": "駅前広場トイレ",
+    "location": { "lat": 35.507, "lng": 139.712 },
+    "attributes": { "accessible": false, "ostomate": false, "open24h": false }
+  },
+  {
+    "id": "toilet_003",
+    "name": "北部運動公園多機能トイレ",
+    "location": { "lat": 35.531, "lng": 139.738 },
+    "attributes": { "accessible": true, "ostomate": true, "open24h": false }
+  }
+]

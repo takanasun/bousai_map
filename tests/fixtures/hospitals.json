@@ -1,0 +1,26 @@
+[
+  {
+    "id": "hosp_001",
+    "name": "川崎災害拠点総合病院",
+    "isDisasterBase": true,
+    "location": { "lat": 35.514, "lng": 139.718 },
+    "capabilities": ["循環器系", "糖尿病", "人工透析"],
+    "topDiseases": ["心不全", "誤嚥性肺炎", "脳梗塞"]
+  },
+  {
+    "id": "hosp_002",
+    "name": "みなと内科クリニック",
+    "isDisasterBase": false,
+    "location": { "lat": 35.508, "lng": 139.710 },
+    "capabilities": ["糖尿病", "呼吸器系"],
+    "topDiseases": ["糖尿病", "気管支喘息"]
+  },
+  {
+    "id": "hosp_003",
+    "name": "丘の上循環器病院",
+    "isDisasterBase": true,
+    "location": { "lat": 35.530, "lng": 139.735 },
+    "capabilities": ["循環器系", "脳神経外科"],
+    "topDiseases": ["心筋梗塞", "脳梗塞"]
+  }
+]
