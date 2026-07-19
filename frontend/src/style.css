@@ -1,0 +1,655 @@
+/* モバイルファースト（仕様 6）。Tailwind 導入前の暫定スタイル。 */
+
+:root {
+  --header-height: 3.5rem;
+  --border: #d8dee4;
+  --text: #1f2933;
+  --error: #b3261e;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+  color: var(--text);
+}
+
+.app-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.app-header h1 {
+  font-size: 1rem;
+  margin: 0;
+  flex: 1 1 auto;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  /* 各枠の高さを行内で揃える。
+     flex-start だと中身の量で高さが変わり、チェックボックス(2.75rem)を持つ
+     医療機関・地価の枠に対して、セレクトだけの人口メッシュの枠が低くなる。 */
+  align-items: stretch;
+  gap: 0.5rem 1rem;
+}
+
+.control-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+  padding: 0 0.625rem 0.25rem;
+  margin: 0;
+}
+
+.control-group legend {
+  font-size: 0.75rem;
+  color: #52606d;
+  padding: 0 0.25rem;
+}
+
+/* 避難所の設定枠と人アイコンを横並びにする。
+   fieldset に min-width:0 を入れないと、中身の幅で押し広げられてしまう。 */
+.control-group-row {
+  display: flex;
+  /* 中の fieldset も他の枠と同じ高さに揃える */
+  align-items: stretch;
+  gap: 0.25rem;
+}
+
+.control-group-row .control-group {
+  flex: 1;
+  min-width: 0;
+}
+
+/* 企画意図の吹き出しを開く人アイコン。枠の右上に添える。 */
+.about-toggle {
+  flex: none;
+  /* 枠と違って引き伸ばさず、上端に添える */
+  align-self: flex-start;
+  border: none;
+  background: none;
+  padding: 0.25rem;
+  margin-top: 0.5rem;
+  font-size: 1.125rem;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: 0.25rem;
+  opacity: 0.75;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.about-toggle:hover,
+.about-toggle:focus-visible {
+  opacity: 1;
+  transform: scale(1.15);
+}
+
+.about-toggle[aria-expanded='true'] {
+  opacity: 1;
+}
+
+/* 企画意図のモーダル。起動時ダイアログ(1000)より手前に置き、
+   開いている間は地図・凡例・AIアシスタントのどれにも隠れないようにする。 */
+.about-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(31, 41, 51, 0.55);
+}
+
+.about-modal[hidden] { display: none; }
+
+.about-panel {
+  /* ウインドウ幅の30%。狭い画面では読めなくなるため下限と上限を設ける */
+  width: 30vw;
+  min-width: min(22rem, 100%);
+  max-width: 100%;
+  box-sizing: border-box;
+  /* 本文が長い場合に画面からはみ出さない */
+  max-height: 85vh;
+  overflow-y: auto;
+  background: #fff;
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+}
+
+.about-panel h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+}
+
+.about-body {
+  font-size: 0.8125rem;
+  line-height: 1.9;
+  color: #3e4c59;
+  /* 長い日本語でも枠からはみ出さず折り返す */
+  overflow-wrap: anywhere;
+  word-break: normal;
+  white-space: normal;
+}
+
+.about-body p { margin: 0 0 0.75rem; }
+.about-body p:last-child { margin-bottom: 0; }
+
+.about-close {
+  margin-top: 1rem;
+  font-size: 0.8125rem;
+  padding: 0 0.75rem;
+  min-height: 2.75rem;
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+  background: #fff;
+  cursor: pointer;
+}
+
+.about-close:hover { background: #f0f4f8; }
+
+@media (prefers-reduced-motion: reduce) {
+  .about-toggle {
+    transition: none;
+  }
+  .about-toggle:hover,
+  .about-toggle:focus-visible {
+    transform: none;
+  }
+}
+
+.select {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.8125rem;
+}
+
+.select select {
+  font-size: 0.8125rem;
+  padding: 0.25rem;
+  min-height: 2.25rem;
+}
+
+/* 凡例代わりのピン色チップ */
+.pin-chip {
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 0.25rem;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.pin-emergency { background: #d7191c; }
+.pin-center { background: #2b83ba; }
+
+.checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.875rem;
+  /* タップしやすい大きさを確保 */
+  min-height: 2.75rem;
+  cursor: pointer;
+}
+
+.checkbox input { width: 1.125rem; height: 1.125rem; }
+
+.count {
+  font-size: 0.8125rem;
+  color: #52606d;
+  font-variant-numeric: tabular-nums;
+}
+
+.status {
+  margin: 0;
+  padding: 0.5rem 1rem;
+  font-size: 0.8125rem;
+  background: #f5f7fa;
+  border-bottom: 1px solid var(--border);
+}
+
+.status[data-kind="error"] {
+  background: #fdecea;
+  color: var(--error);
+  font-weight: 600;
+}
+
+.status[hidden] { display: none; }
+
+main { position: relative; }
+
+#map {
+  width: 100%;
+  /* ヘッダとステータス分を差し引いた高さ */
+  height: calc(100vh - var(--header-height) - 2.5rem);
+  min-height: 20rem;
+}
+
+.legend {
+  position: absolute;
+  right: 0.75rem;
+  bottom: 1.5rem;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 0.625rem 0.75rem;
+  font-size: 0.75rem;
+  max-width: 11rem;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+}
+
+.legend h2 { font-size: 0.8125rem; margin: 0 0 0.375rem; }
+
+.legend ul { list-style: none; margin: 0; padding: 0; }
+
+.legend li {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  line-height: 1.6;
+}
+
+.legend-swatch {
+  width: 0.875rem;
+  height: 0.875rem;
+  border-radius: 0.125rem;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  flex: none;
+}
+
+.legend-note {
+  margin: 0.375rem 0 0;
+  color: #52606d;
+  line-height: 1.5;
+}
+
+.home-marker { font-size: 1.5rem; line-height: 1; }
+
+/* Azure Maps の吹き出しは .maplibregl-popup が display:flex。
+   flexアイテムは既定で min-width:auto のため中身の幅まで広がり、
+   内側の max-width が効かず折り返さない。両方に min-width:0 を入れる。 */
+.maplibregl-popup { max-width: 19rem; }
+
+.maplibregl-popup-content {
+  min-width: 0;
+  max-width: 19rem;
+  box-sizing: border-box;
+}
+
+.popup {
+  padding: 0.625rem 0.75rem;
+  font-size: 0.8125rem;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  line-height: 1.6;
+  /* 長い施設名・住所・URL は途中でも折り返す（吹き出しからはみ出さない） */
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: normal;
+}
+
+/* 吹き出しの中身が横に伸びて折り返しが効かなくなるのを防ぐ */
+.popup > * { max-width: 100%; min-width: 0; }
+
+.popup strong { display: block; margin-bottom: 0.125rem; }
+.popup-tag { color: #2b83ba; font-size: 0.75rem; margin-bottom: 0.25rem; }
+.popup-note { color: #52606d; font-size: 0.75rem; }
+
+/* URL はスペースが無く最も折り返しにくいので個別に指定 */
+.popup a { overflow-wrap: anywhere; word-break: break-all; }
+
+@media (max-width: 480px) {
+  .legend { right: 0.5rem; bottom: 0.5rem; font-size: 0.6875rem; max-width: 9rem; }
+  .app-header h1 { flex-basis: 100%; }
+  /* 狭い画面では30%だと1行に数文字しか入らないため全幅にする */
+  .about-panel { width: 100%; }
+}
+
+/* --- 追加: ボタン / 現在地 / 医療機関 / AIアシスタント --- */
+
+.control-group button {
+  font-size: 0.8125rem;
+  padding: 0.375rem 0.625rem;
+  min-height: 2.25rem;
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+  background: #fff;
+  cursor: pointer;
+}
+
+.control-group button:hover:not(:disabled) { background: #f0f4f8; }
+.control-group button:disabled { opacity: 0.5; cursor: default; }
+
+/* 医療機関のチップは「濃紺の◯に白い十字」。地図上のピンと意味を揃える。
+   ✚ の文字グリフを流し込む方式だと、10px 四方では字形の縦位置が
+   ずれて十字に見えなかったため、SVG を背景画像として描いている。 */
+.pin-hospital {
+  /* 十字が潰れないよう、他のチップより少しだけ大きくする */
+  width: 0.875rem;
+  height: 0.875rem;
+  border: none;
+  background: url("data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2016%2016%22%3E%3Ccircle%20cx%3D%228%22%20cy%3D%228%22%20r%3D%227.5%22%20fill%3D%22%231a4d8f%22%2F%3E%3Cpath%20d%3D%22M7%203.5h2v9H7z%22%20fill%3D%22%23fff%22%2F%3E%3Cpath%20d%3D%22M3.5%207h9v2h-9z%22%20fill%3D%22%23fff%22%2F%3E%3C%2Fsvg%3E") center / contain no-repeat;
+  /* マークアップに残る装飾文字を表示しない（読み上げ対象にもしない） */
+  font-size: 0;
+}
+
+/* 現在地マーカー（青い点 + 波紋） */
+.current-marker {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  background: #1a73e8;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 rgba(26, 115, 232, 0.5);
+  animation: current-pulse 2s infinite;
+}
+
+@keyframes current-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(26, 115, 232, 0.5); }
+  70% { box-shadow: 0 0 0 0.9rem rgba(26, 115, 232, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(26, 115, 232, 0); }
+}
+
+/* AI防災アシスタント */
+.assistant {
+  position: absolute;
+  right: 0.75rem;
+  top: 0.75rem;
+  width: 20rem;
+  max-width: calc(100% - 1.5rem);
+  background: rgba(255, 255, 255, 0.97);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 0.625rem 0.75rem;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.16);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.assistant h2 { font-size: 0.8125rem; margin: 0; }
+
+.chat-log {
+  max-height: 16rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+}
+
+.chat-message {
+  padding: 0.4375rem 0.625rem;
+  border-radius: 0.5rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.chat-user { background: #e8f0fe; align-self: flex-end; max-width: 90%; }
+.chat-assistant { background: #f5f7fa; }
+.chat-error { background: #fdecea; color: var(--error); }
+
+.chat-meta {
+  margin-top: 0.25rem;
+  font-size: 0.6875rem;
+  color: #52606d;
+}
+
+.chat-form { display: flex; gap: 0.375rem; }
+
+.chat-form input {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 0.8125rem;
+  padding: 0.4375rem 0.5rem;
+  min-height: 2.5rem;
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+}
+
+.chat-form button {
+  font-size: 0.8125rem;
+  padding: 0 0.75rem;
+  min-height: 2.5rem;
+  border: 1px solid transparent;
+  border-radius: 0.375rem;
+  background: #1a73e8;
+  color: #fff;
+  cursor: pointer;
+}
+
+.chat-form button:disabled { opacity: 0.5; cursor: default; }
+
+.visually-hidden {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0);
+  white-space: nowrap; border: 0;
+}
+
+@media (max-width: 720px) {
+  .assistant { position: static; width: auto; margin: 0.5rem; }
+  .chat-log { max-height: 10rem; }
+}
+
+/* 診療科は3件ごとに改行するため、行ごとにブロック表示にする */
+.popup-speciality {
+  line-height: 1.5;
+  padding-left: 0.5rem;
+  overflow-wrap: anywhere;
+}
+
+/* 住所入力（基準地点の指定） */
+.address-form { display: flex; gap: 0.25rem; }
+
+.address-form input {
+  font-size: 0.8125rem;
+  padding: 0.25rem 0.5rem;
+  min-height: 2.25rem;
+  min-width: 14rem;
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+}
+
+/* AIの回答で言及された施設の旗。既存ピン（青丸/赤/濃紺）と色を分ける。
+   見落とされないよう「弾む＋光る＋波紋」の3つを重ねる。 */
+.highlight-marker {
+  position: relative;
+  font-size: 1.75rem;
+  line-height: 1;
+  cursor: default;
+  /* 弾む動きは止めず継続させる（回答のたびに付け替わるため） */
+  animation: highlight-bounce 1s cubic-bezier(0.28, 0.84, 0.42, 1) infinite;
+}
+
+/* 旗そのものが明滅して光る */
+.highlight-marker::after {
+  content: attr(data-icon);
+  position: absolute;
+  inset: 0;
+  animation: highlight-glow 1.6s ease-in-out infinite;
+  filter:
+    drop-shadow(0 0 4px var(--flag-color))
+    drop-shadow(0 0 10px var(--flag-color));
+  pointer-events: none;
+}
+
+/* 足元から広がる波紋 */
+.highlight-marker::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -0.25rem;
+  width: 1rem;
+  height: 1rem;
+  margin-left: -0.5rem;
+  border-radius: 50%;
+  border: 2px solid var(--flag-color);
+  animation: highlight-ripple 1.6s ease-out infinite;
+  pointer-events: none;
+}
+
+@keyframes highlight-bounce {
+  0%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-0.625rem); }
+  50% { transform: translateY(0); }
+  60% { transform: translateY(-0.25rem); }
+  75% { transform: translateY(0); }
+}
+
+@keyframes highlight-glow {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 1; }
+}
+
+@keyframes highlight-ripple {
+  0% { transform: scale(0.4); opacity: 0.9; }
+  100% { transform: scale(2.6); opacity: 0; }
+}
+
+/* 動きを減らす設定の利用者には点滅だけにする（前庭障害への配慮） */
+@media (prefers-reduced-motion: reduce) {
+  .highlight-marker,
+  .highlight-marker::after,
+  .highlight-marker::before {
+    animation: none;
+  }
+  .highlight-marker {
+    filter: drop-shadow(0 0 6px var(--flag-color));
+  }
+}
+
+/* --- 起動時の基準地点ダイアログ --- */
+.startup-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(31, 41, 51, 0.55);
+}
+
+.startup-dialog[hidden] { display: none; }
+
+.startup-panel {
+  background: #fff;
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  width: min(26rem, 100%);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.startup-panel h2 { font-size: 1rem; margin: 0; }
+
+.startup-note {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: #52606d;
+  line-height: 1.6;
+}
+
+.startup-panel label {
+  display: block;
+  font-size: 0.8125rem;
+  margin-bottom: 0.25rem;
+}
+
+.startup-row { display: flex; gap: 0.375rem; }
+
+.startup-row input {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 0.875rem;
+  padding: 0.5rem;
+  min-height: 2.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+}
+
+.startup-row button,
+.startup-alternatives button {
+  font-size: 0.8125rem;
+  padding: 0 0.75rem;
+  min-height: 2.75rem;
+  border: 1px solid transparent;
+  border-radius: 0.375rem;
+  background: #1a73e8;
+  color: #fff;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.startup-alternatives {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  border-top: 1px solid var(--border);
+  padding-top: 0.75rem;
+}
+
+.startup-secondary {
+  background: #fff !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+}
+
+.startup-row button:disabled,
+.startup-alternatives button:disabled { opacity: 0.5; cursor: default; }
+
+.startup-error {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--error);
+  background: #fdecea;
+  padding: 0.5rem;
+  border-radius: 0.375rem;
+}
+
+.startup-error[hidden] { display: none; }
+
+/* 地価スライダー */
+.slider { display: inline-flex; align-items: center; gap: 0.375rem; font-size: 0.8125rem; }
+.slider input[type="range"] { width: 9rem; }
+.slider output { font-variant-numeric: tabular-nums; min-width: 4.5rem; }
+/* 地価は地図上も正方形アイコンなので、凡例のチップも四角にする */
+.pin-land {
+  background: linear-gradient(90deg, #2166ac, #b2182b);
+  border-radius: 0;
+}
+
+/* 地価の色分け凡例（操作パネル内に横並びで置く） */
+.inline-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.5rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 0.6875rem;
+  color: #52606d;
+}
+
+.inline-legend li { display: flex; align-items: center; gap: 0.1875rem; }
+.inline-legend .legend-swatch { width: 0.625rem; height: 0.625rem; }

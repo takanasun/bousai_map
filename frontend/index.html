@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <!--
+    API (Azure Functions) の基底URL。
+    ローカルでは空のままでよい（api.js が localhost:7071 を自動判別する）。
+    本番デプロイ時に scripts/deploy_frontend.sh が Function App のURLを差し込む。
+  -->
+  <meta name="api-base" content="" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>災害時医療・インフラ予測マップ</title>
+
+  <!-- Azure Maps Web SDK -->
+  <link rel="stylesheet" href="https://atlas.microsoft.com/sdk/javascript/mapcontrol/3/atlas.min.css" />
+  <script src="https://atlas.microsoft.com/sdk/javascript/mapcontrol/3/atlas.min.js"></script>
+
+  <link rel="stylesheet" href="./src/style.css" />
+</head>
+<body>
+  <header class="app-header">
+    <h1>災害時医療・インフラ予測マップ</h1>
+
+    <div class="controls">
+      <fieldset class="control-group">
+        <legend>基準地点</legend>
+        <!-- データ読み込み完了まで無効。main.js が有効化する -->
+        <button type="button" id="locate-button" disabled>📍 現在地を取得</button>
+        <button type="button" id="home-button" disabled>🏛 県庁に戻す</button>
+        <form id="address-form" class="address-form" autocomplete="off">
+          <label class="visually-hidden" for="address-input">住所</label>
+          <input
+            type="text"
+            id="address-input"
+            placeholder="詳細を特定したい場合は住所を入力"
+            maxlength="100"
+            disabled
+          />
+          <button type="submit">検索</button>
+        </form>
+        <span id="reference-label" class="count"></span>
+      </fieldset>
+
+      <!-- 避難所の設定枠と、その右隣に企画意図を開く人アイコンを並べる -->
+      <div class="control-group-row">
+      <fieldset class="control-group">
+        <legend>避難所</legend>
+        <label class="checkbox">
+          <input type="checkbox" id="show-emergency" checked disabled />
+          <span class="pin-chip pin-emergency"></span>命を守る（緊急避難場所）
+        </label>
+        <label class="checkbox">
+          <input type="checkbox" id="show-center" checked disabled />
+          <span class="pin-chip pin-center"></span>生活する（指定避難所）
+        </label>
+        <label class="select">
+          対応災害
+          <select id="disaster-type" disabled>
+            <option value="">すべて</option>
+            <!-- 災害種別は main.js が描画 -->
+          </select>
+        </label>
+        <span id="shelter-count" class="count"></span>
+      </fieldset>
+        <button
+          type="button"
+          id="about-toggle"
+          class="about-toggle"
+          aria-expanded="false"
+          aria-controls="about-modal"
+          title="このマップを作った理由"
+        >
+          <span aria-hidden="true">🧍</span>
+          <span class="visually-hidden">このマップを作った理由を表示</span>
+        </button>
+      </div>
+
+      <fieldset class="control-group">
+        <legend>医療機関</legend>
+        <label class="checkbox">
+          <input type="checkbox" id="show-hospitals" checked disabled />
+          <span class="pin-chip pin-hospital" aria-hidden="true"></span>医療機関を表示
+        </label>
+        <label class="select">
+          診療科
+          <select id="hospital-speciality" disabled>
+            <option value="">すべて</option>
+            <!-- 診療科は実データから main.js が描画 -->
+          </select>
+        </label>
+        <span id="hospital-count" class="count"></span>
+      </fieldset>
+
+      <fieldset class="control-group">
+        <legend>人口メッシュ</legend>
+        <label class="select">
+          細かさ
+          <select id="mesh-resolution" disabled>
+            <!-- 選択肢はサーバが持つデータから main.js が描画 -->
+          </select>
+        </label>
+        <span id="resolution-note" class="count"></span>
+      </fieldset>
+
+      <fieldset class="control-group">
+        <legend>地価</legend>
+        <label class="checkbox">
+          <input type="checkbox" id="show-landprice" disabled />
+          <span class="pin-chip pin-land"></span>地価を表示
+        </label>
+        <label class="slider">
+          上限 <output id="landprice-value">—</output>
+          <input type="range" id="landprice-slider" disabled />
+        </label>
+        <span id="landprice-count" class="count"></span>
+        <ul id="landprice-legend" class="inline-legend" aria-label="地価の色分け"></ul>
+      </fieldset>
+
+      <fieldset class="control-group">
+        <legend>公衆トイレ</legend>
+        <label class="checkbox">
+          <input type="checkbox" id="multifunction-only" disabled />
+          多機能トイレのみ
+        </label>
+        <span id="toilet-count" class="count"></span>
+      </fieldset>
+    </div>
+  </header>
+
+  <p id="status" class="status" role="status" aria-live="polite"></p>
+
+  <main>
+    <div id="map" role="application" aria-label="人口密度・避難所・医療機関・公衆トイレの地図"></div>
+
+    <aside class="legend">
+      <h2>人口密度</h2>
+      <p id="legend-unit" class="legend-note"></p>
+      <ul id="legend-items"></ul>
+      <p class="legend-note">色が赤いほど人口が多く、混雑が予測されます。</p>
+    </aside>
+
+    <!-- AI防災アシスタント -->
+    <aside class="assistant" aria-label="AI防災アシスタント">
+      <h2>AI防災アシスタント</h2>
+      <div id="chat-log" class="chat-log" role="log" aria-live="polite"></div>
+      <form id="chat-form" class="chat-form" autocomplete="off">
+        <label class="visually-hidden" for="chat-input">質問</label>
+        <input
+          type="text"
+          id="chat-input"
+          placeholder="例: 一番近い避難所はどこ？"
+          maxlength="500"
+          disabled
+        />
+        <button type="submit" id="chat-send" disabled>送信</button>
+      </form>
+      <p class="legend-note">回答は地図上のデータのみに基づきます。緊急時は必ず公式情報をご確認ください。</p>
+    </aside>
+  </main>
+
+  <!-- 企画意図のモーダル。本文は main.js が about.js から描画する -->
+  <div id="about-modal" class="about-modal" role="dialog" aria-modal="true"
+       aria-labelledby="about-title" hidden>
+    <div class="about-panel">
+      <h2 id="about-title"></h2>
+      <div id="about-body" class="about-body"></div>
+      <button type="button" id="about-close" class="about-close">閉じる</button>
+    </div>
+  </div>
+
+  <!-- 起動時に基準地点を尋ねるダイアログ -->
+  <div id="startup-dialog" class="startup-dialog" role="dialog" aria-modal="true"
+       aria-labelledby="startup-title" hidden>
+    <div class="startup-panel">
+      <h2 id="startup-title">現在地を指定してください</h2>
+      <p class="startup-note">
+        周辺の避難所・医療機関・公衆トイレを表示し、AIアシスタントへの質問の基準にします。
+      </p>
+
+      <form id="startup-address-form" autocomplete="off">
+        <label for="startup-address-input">住所を入力</label>
+        <div class="startup-row">
+          <input
+            type="text"
+            id="startup-address-input"
+            placeholder="例: 横浜市中区日本大通1"
+            maxlength="100"
+          />
+          <button type="submit" id="startup-address-submit">この住所で開始</button>
+        </div>
+      </form>
+
+      <p id="startup-error" class="startup-error" role="alert" hidden></p>
+
+      <div class="startup-alternatives">
+        <button type="button" id="startup-locate">📍 現在地を使う</button>
+        <button type="button" id="startup-skip" class="startup-secondary">
+          スキップ（神奈川県庁を基準にする）
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
