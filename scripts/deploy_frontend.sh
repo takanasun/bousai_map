@@ -14,8 +14,8 @@
 set -euo pipefail
 
 RESOURCE_GROUP="${RESOURCE_GROUP:-rg-bousai-map}"
-SWA_NAME="${SWA_NAME:-swa-bousai-map-0ab073}"
-FUNCAPP_NAME="${FUNCAPP_NAME:-func-bousai-map-0ab073}"
+SWA_NAME="${SWA_NAME:-swa-bousai-map-636d22}"
+FUNCAPP_NAME="${FUNCAPP_NAME:-func-bousai-map-636d22}"
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 STAGING="$(mktemp -d)"
