@@ -15,18 +15,28 @@ describe('ABOUT_PARAGRAPHS', () => {
     }
   });
 
-  it('4つの機能を追加した動機がすべて残っている', () => {
+  it('2つの利用場面が両方書かれている', () => {
     const text = ABOUT_PARAGRAPHS.join('');
-    expect(text).toContain('避難所が混むかどうか');  // 人口メッシュ
-    expect(text).toContain('災害時に頼れる病院');    // 医療機関
-    expect(text).toContain('近くのトイレ');          // トイレ
-    expect(text).toContain('地価が安いところ');      // 地価
+    expect(text).toContain('災害から大切な家族を守りたい');   // いまの暮らし
+    expect(text).toContain('これから新生活を始める方');       // これからの住まい
+  });
+
+  it('全体を貫くキーワード「安心」が本文にもある', () => {
+    // 見出しが「安心」を軸にしているので、本文が離れていないことを確認する
+    expect(ABOUT_PARAGRAPHS.join('')).toContain('安心');
+  });
+
+  it('可視化している対象が挙がっている', () => {
+    const text = ABOUT_PARAGRAPHS.join('');
+    for (const target of ['人口データ', '避難所', '医療機関']) {
+      expect(text).toContain(target);
+    }
   });
 
   it('原文の言い回しを保っている', () => {
     const text = ABOUT_PARAGRAPHS.join('');
-    expect(text).toContain('このマップの企画意図ですが');
-    expect(text).toContain('機能を設計いたしました');
+    expect(text).toContain('という想いから生まれました');
+    expect(text).toContain('1つの指標として是非ご活用ください');
   });
 
   // 一般公開するページなので、家族が特定される情報は載せない。
@@ -39,13 +49,19 @@ describe('ABOUT_PARAGRAPHS', () => {
   });
 
   it('医療機関の動機は一般化した表現で残っている', () => {
-    expect(ABOUT_PARAGRAPHS.join('')).toContain('家族が疾患をもっている');
+    expect(ABOUT_PARAGRAPHS.join('')).toContain('持病のある家族');
   });
 });
 
 describe('ABOUT_TITLE', () => {
   it('見出しがある', () => {
     expect(ABOUT_TITLE.trim().length).toBeGreaterThan(0);
+  });
+
+  it('2つの利用場面を示すキャッチコピーになっている', () => {
+    expect(ABOUT_TITLE).toContain('いまの暮らし');
+    expect(ABOUT_TITLE).toContain('これからの住まい');
+    expect(ABOUT_TITLE).toContain('安心');
   });
 });
 
