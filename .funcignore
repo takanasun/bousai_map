@@ -1,0 +1,16 @@
+.git*
+.venv/
+.vscode/
+__pycache__/
+.pytest_cache/
+tests/
+local.settings.json
+docs/
+
+# 125m メッシュは 12MB あり、デプロイサイズと転送量を圧迫するため公開版では配信しない。
+# `available_mesh_resolutions()` が実ファイルの有無で選択肢を組むため、
+# 除外するだけで UI の解像度リストからも自動的に消える（コード変更不要）。
+data/processed/population_mesh_125m.json
+
+# 生データはクレンジング済み JSON があれば不要（83MB）
+data/raw/

@@ -1,0 +1,18 @@
+# =============================================================================
+# 開発・テスト・データ加工用の依存
+#
+# これらは Azure Functions にはデプロイしない（.funcignore で scripts/ と
+# tests/ を除外済み）。コールドスタート対策として、ランタイム依存は
+# requirements.txt 側の最小構成に保つこと。
+#
+#   インストール: pip install -r requirements.txt -r requirements-dev.txt
+# =============================================================================
+-r requirements.txt
+
+# テスト
+pytest>=7.4.0
+
+# オープンデータのクレンジング (scripts/clean_mesh.py)
+# e-Stat の CSV は副ヘッダ行や秘匿値を含むため、pandas の
+# skiprows / to_numeric(errors="coerce") を利用する。
+pandas>=2.0.0

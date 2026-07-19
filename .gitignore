@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+*.egg-info/
+
+# Node / フロントエンド
+node_modules/
+coverage/
+
+# Azure Functions
+bin/
+obj/
+.python_packages/
+
+# データ
+# 生データは配布元から再取得できる上に 83MB あり、リポジトリに載せる価値がない。
+# 加工済み JSON は scripts/clean_*.py で再生成できるが、
+# クローンしてすぐ動かせるほうが読み手に親切なので追跡する（約8MB）。
+# ただし 125m メッシュだけは 12MB と大きく、公開版でも配信していないため除外する。
+data/raw/
+data/processed/population_mesh_125m.json
+
+# ローカル資格情報 (絶対にコミットしない)
+local.settings.json
+.env
+.env.local
+
+# エディタ / OS
+.vscode/
+.idea/
+.DS_Store
