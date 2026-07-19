@@ -176,11 +176,12 @@ describe('CUD 配色の不透明度', () => {
     expect(high).toBeGreaterThan(low);
   });
 
-  it('薄すぎると色が判別できないため十分な濃さがある', () => {
-    // 0.6 では ΔE が 8.4 まで落ちて判別限界を割る
-    expect(CUD_OPACITY).toBeGreaterThanOrEqual(0.8);
-    // 1.0 にすると地図が完全に隠れて位置が分からなくなる
-    expect(CUD_OPACITY).toBeLessThan(1);
+  it('地図が読める薄さと、段を見分けられる濃さの両方を満たす', () => {
+    // 0.35 が下限。P型で ΔE 11.4 と判別限界(約10)への余裕が既に小さく、
+    // 0.25 まで下げると 9.1 で割ってしまう。
+    expect(CUD_OPACITY).toBeGreaterThanOrEqual(0.35);
+    // 濃すぎると下の地図が見えず、どこの話か分からなくなる
+    expect(CUD_OPACITY).toBeLessThanOrEqual(0.75);
   });
 
   it('CUD の不透明度式は全区切りで同じ値を返す', () => {
