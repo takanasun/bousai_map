@@ -31,32 +31,35 @@ export const PALETTE_NORMAL = 'normal';
 export const PALETTE_CUD = 'cud';
 
 /**
- * カラーユニバーサルデザイン（CUD）配色。cividis を反転した薄い黄→濃紺。
+ * カラーユニバーサルデザイン（CUD）配色。東京メトロの路線カラーをそのまま使う。
  *
- * 既定の緑→黄→赤は、色覚特性のある方には両端が判別しにくい。
- * 二色覚シミュレーション(Viénot-Brettel-Mollon)で測った色差 ΔE:
+ * 銀座線G / 丸ノ内線M / 日比谷線H / 東西線T / 千代田線C / 半蔵門線Z の6色。
+ * 路線カラーは9路線を区別するために互いを最大限離した配色なので、
+ * 隣り合う段の見分けは非常に良い。地図背景と不透明度0.85で合成した実測:
  *
- *   配色              隣接段の最小(D型)   両端(D型)
- *   緑→黄→赤                 13.7        25.7   ← 6段がほぼ1色に潰れる
- *   cividis反転               15.7       142.3
+ *   配色                    正常   P型   D型
+ *   既定(緑→黄→赤)           9.8   3.6   7.0
+ *   cividis                 12.9  13.0  13.1
+ *   銀座線→半蔵門線(再構成)   28.8  29.2  25.8
+ *   これ(路線カラーそのまま)   38.9  27.8  37.7
  *
- * cividis は色覚特性のために設計された配色で、**明度が単調に変化する**。
- * 色相を区別できなくても「濃いほど人口が多い」と濃淡だけで読め、
- * 印刷やモノクロ表示にも耐える。
+ * 【トレードオフ】明度が単調でない（L* = 74, 57, 77, 64, 71, 62）。
+ * つまり色を見て「どちらが混雑しているか」は判断できず、凡例との
+ * 照合が必要になる。カテゴリ配色を順序尺度に使う以上これは避けられない。
+ * ひと目で危険度を読ませたい場合は、明度が単調な配色に戻すこと
+ * （git履歴に cividis 版と銀座線→半蔵門線の再構成版がある）。
  *
- * 他の候補を採らなかった理由:
- *   viridis  … 数値は最良(18.1)だが、濃い紫の端が地図上で唐突に見える
- *   YlOrRd   … ColorBrewer は色覚安全とするが、6段だとP型で 7.6 まで落ちる
- *   YlGnBu   … 穏やかな青系だがP型で 8.7 と既定配色より悪化する
- *   GnBu     … 同様に 5.7 で論外
+ * なお東京メトロ自身の色覚対応は、色を変えることではなく路線記号
+ * (G/M/H/T/C/Y/Z/N/F)を足すことだった。色だけに情報を載せない、という
+ * 原則はこのアプリでも採っている（医療機関=円＋白十字、地価=正方形）。
  */
 export const DENSITY_COLORS_CUD = [
-  { r: 254, g: 232, b: 56 },   // 薄い黄（人口が少ない）
-  { r: 211, g: 193, b: 100 },  // 砂
-  { r: 145, g: 138, b: 95 },   // 黄土
-  { r: 87, g: 93, b: 109 },    // 灰青
-  { r: 38, g: 69, b: 110 },    // 青
-  { r: 0, g: 34, b: 78 },      // 濃紺（人口が多い）
+  { r: 255, g: 149, b: 0 },    // G 銀座線オレンジ（人口が少ない）
+  { r: 246, g: 46, b: 54 },    // M 丸ノ内線レッド
+  { r: 181, g: 181, b: 172 },  // H 日比谷線シルバー
+  { r: 0, g: 155, b: 191 },    // T 東西線スカイ
+  { r: 0, g: 187, b: 133 },    // C 千代田線グリーン
+  { r: 143, g: 118, b: 214 },  // Z 半蔵門線パープル（人口が多い）
 ];
 
 /**
@@ -96,6 +99,22 @@ export const DEFAULT_RESOLUTION = '1km';
 
 export const MIN_OPACITY = 0.15;
 export const MAX_OPACITY = 0.75;
+
+/**
+ * CUD 配色で使う固定の不透明度。
+ *
+ * 既定配色は人口に応じて 0.15〜0.75 と濃さを変える（地図が透けるように）。
+ * だが CUD 配色は「明度で人口を読ませる」設計なので、不透明度で明度を
+ * 上書きすると原理的に成立しない。実際、地図背景と合成して測ると
+ * 隣接段の ΔE が判別限界(約10)を大きく割った:
+ *
+ *   可変(0.15〜0.75)  正常 4.0 / P型 4.3 / D型 3.9
+ *   固定 0.85         正常 12.9 / P型 12.8 / D型 13.1
+ *
+ * 0.6 まで下げると 8.4 まで落ちて判別できない。1.0 にすると地図が
+ * 完全に隠れて位置が分からなくなる。その間で 0.85 を採っている。
+ */
+export const CUD_OPACITY = 0.85;
 
 /**
  * 解像度に対応する停止点（区切り値 + 色）を返す。
@@ -158,8 +177,18 @@ export function densityToColor(density, resolution, palette) {
   return `rgb(${r}, ${g}, ${b})`;
 }
 
-/** 人口に対応する不透明度（MIN_OPACITY〜MAX_OPACITY）を返す。 */
-export function densityToOpacity(density, resolution) {
+/**
+ * 人口に対応する不透明度を返す。
+ *
+ * CUD 配色では濃淡が情報そのものなので、不透明度は変えず固定する。
+ *
+ * @param {number} density セル内の人口
+ * @param {string} [resolution]
+ * @param {string} [palette] PALETTE_NORMAL / PALETTE_CUD
+ */
+export function densityToOpacity(density, resolution, palette) {
+  if (palette === PALETTE_CUD) return CUD_OPACITY;
+
   const stops = getDensityStops(resolution);
   const min = stops[0].density;
   const max = stops[stops.length - 1].density;
@@ -183,11 +212,16 @@ export function buildFillColorExpression(resolution, palette) {
   return expression;
 }
 
-/** Azure Maps の PolygonLayer に渡す fillOpacity 式を組み立てる。 */
-export function buildFillOpacityExpression(resolution) {
+/**
+ * Azure Maps の PolygonLayer に渡す fillOpacity 式を組み立てる。
+ *
+ * @param {string} [resolution]
+ * @param {string} [palette] PALETTE_NORMAL / PALETTE_CUD
+ */
+export function buildFillOpacityExpression(resolution, palette) {
   const expression = ['interpolate', ['linear'], ['get', 'populationDensity']];
-  for (const stop of getDensityStops(resolution)) {
-    expression.push(stop.density, densityToOpacity(stop.density, resolution));
+  for (const stop of getDensityStops(resolution, palette)) {
+    expression.push(stop.density, densityToOpacity(stop.density, resolution, palette));
   }
   return expression;
 }

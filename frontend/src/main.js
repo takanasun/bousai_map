@@ -185,7 +185,7 @@ function applyMeshColorScale(layer, resolution) {
   if (layer) {
     layer.setOptions({
       fillColor: buildFillColorExpression(resolution, densityPalette),
-      fillOpacity: buildFillOpacityExpression(resolution),
+      fillOpacity: buildFillOpacityExpression(resolution, densityPalette),
     });
   }
   renderLegend(resolution);
