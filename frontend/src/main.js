@@ -29,6 +29,8 @@ import {
 } from './geojson.js';
 import {
   buildFillColorExpression,
+  PALETTE_NORMAL,
+  PALETTE_CUD,
   buildFillOpacityExpression,
   getDensityStops,
   densityToColor,
@@ -93,6 +95,62 @@ function setText(elementId, text) {
 }
 
 /**
+ * 解像度が変わったことを配色の切り替え処理へ伝えるフック。
+ * 配色を切り替えたとき、どの解像度で塗り直すか分からないと凡例とずれるため。
+ */
+let onResolutionApplied = () => {};
+
+/** 配色の保存キー。localStorage が使えない環境でも動くよう例外は握り潰す。 */
+const PALETTE_STORAGE_KEY = 'bousai-map:density-palette';
+
+/** 現在の配色。チェックボックスと localStorage で切り替える。 */
+let densityPalette = PALETTE_NORMAL;
+
+/**
+ * 保存された配色を読む。
+ *
+ * プライベートブラウジング等で localStorage が例外を投げることがあるため、
+ * 失敗しても既定配色で動き続ける（配色は本質的な機能ではない）。
+ */
+function loadDensityPalette() {
+  try {
+    return window.localStorage.getItem(PALETTE_STORAGE_KEY) === PALETTE_CUD
+      ? PALETTE_CUD
+      : PALETTE_NORMAL;
+  } catch {
+    return PALETTE_NORMAL;
+  }
+}
+
+function saveDensityPalette(palette) {
+  try {
+    window.localStorage.setItem(PALETTE_STORAGE_KEY, palette);
+  } catch {
+    // 保存できなくても今回のセッションでは切り替わっているので、何もしない
+  }
+}
+
+/**
+ * 「色覚に配慮した配色」チェックボックスを配線する。
+ *
+ * @param {Function} repaint 配色が変わったときに地図を塗り直す処理
+ */
+function setupColorUniversal(repaint) {
+  const checkbox = document.getElementById('color-universal');
+  if (!checkbox) return;
+
+  densityPalette = loadDensityPalette();
+  checkbox.checked = densityPalette === PALETTE_CUD;
+  repaint();
+
+  checkbox.addEventListener('change', () => {
+    densityPalette = checkbox.checked ? PALETTE_CUD : PALETTE_NORMAL;
+    saveDensityPalette(densityPalette);
+    repaint();
+  });
+}
+
+/**
  * 凡例（人口の色対応表）を組み立てる。
  *
  * 区切りは解像度ごとに変わるため、解像度を切り替えたら必ず描き直す。
@@ -102,11 +160,11 @@ function renderLegend(resolution) {
   const list = document.getElementById('legend-items');
   if (!list) return;
   list.innerHTML = '';
-  for (const stop of getDensityStops(resolution)) {
+  for (const stop of getDensityStops(resolution, densityPalette)) {
     const li = document.createElement('li');
     const swatch = document.createElement('span');
     swatch.className = 'legend-swatch';
-    swatch.style.backgroundColor = densityToColor(stop.density, resolution);
+    swatch.style.backgroundColor = densityToColor(stop.density, resolution, densityPalette);
     const label = document.createElement('span');
     label.textContent = `${stop.density.toLocaleString()} 人`;
     li.append(swatch, label);
@@ -126,7 +184,7 @@ function renderLegend(resolution) {
 function applyMeshColorScale(layer, resolution) {
   if (layer) {
     layer.setOptions({
-      fillColor: buildFillColorExpression(resolution),
+      fillColor: buildFillColorExpression(resolution, densityPalette),
       fillOpacity: buildFillOpacityExpression(resolution),
     });
   }
@@ -288,7 +346,7 @@ async function main() {
     const meshSource = new atlas.source.DataSource();
     map.sources.add(meshSource);
     const meshLayer = new atlas.layer.PolygonLayer(meshSource, 'mesh-fill', {
-      fillColor: buildFillColorExpression(),
+      fillColor: buildFillColorExpression(undefined, densityPalette),
       fillOpacity: buildFillOpacityExpression(),
     });
     map.layers.add(meshLayer);
@@ -675,6 +733,15 @@ async function main() {
       applyMeshColorScale(meshLayer, meshResult.resolution);
       renderResolutionOptions(meshResult.availableResolutions, meshResult.resolution);
 
+      // 配色の切り替え。現在の解像度を覚えておき、切り替え時に塗り直す。
+      let currentResolution = meshResult.resolution;
+      setupColorUniversal(() => {
+        applyMeshColorScale(meshLayer, currentResolution);
+      });
+      onResolutionApplied = (resolution) => {
+        currentResolution = resolution;
+      };
+
       toilets = toiletRecords;
       toiletSource.add(toiletsToFeatureCollection(toilets));
 
@@ -743,6 +810,7 @@ async function main() {
           meshSource.clear();
           meshSource.add(meshToFeatureCollection(result.items));
           applyMeshColorScale(meshLayer, result.resolution);
+          onResolutionApplied(result.resolution);
           setStatus(
             `人口メッシュを ${result.resolution} に切り替えました（${result.items.length.toLocaleString()} 件）。`,
           );

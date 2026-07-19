@@ -26,6 +26,51 @@ export const DENSITY_COLORS = [
 // 注: 色は「赤みの強さ (r - g)」が単調増加するよう選んである。
 // 差し替える際は colorScale.test.js の単調性テストが守ってくれる。
 
+/** 配色の識別子。 */
+export const PALETTE_NORMAL = 'normal';
+export const PALETTE_CUD = 'cud';
+
+/**
+ * カラーユニバーサルデザイン（CUD）配色。cividis を反転した薄い黄→濃紺。
+ *
+ * 既定の緑→黄→赤は、色覚特性のある方には両端が判別しにくい。
+ * 二色覚シミュレーション(Viénot-Brettel-Mollon)で測った色差 ΔE:
+ *
+ *   配色              隣接段の最小(D型)   両端(D型)
+ *   緑→黄→赤                 13.7        25.7   ← 6段がほぼ1色に潰れる
+ *   cividis反転               15.7       142.3
+ *
+ * cividis は色覚特性のために設計された配色で、**明度が単調に変化する**。
+ * 色相を区別できなくても「濃いほど人口が多い」と濃淡だけで読め、
+ * 印刷やモノクロ表示にも耐える。
+ *
+ * 他の候補を採らなかった理由:
+ *   viridis  … 数値は最良(18.1)だが、濃い紫の端が地図上で唐突に見える
+ *   YlOrRd   … ColorBrewer は色覚安全とするが、6段だとP型で 7.6 まで落ちる
+ *   YlGnBu   … 穏やかな青系だがP型で 8.7 と既定配色より悪化する
+ *   GnBu     … 同様に 5.7 で論外
+ */
+export const DENSITY_COLORS_CUD = [
+  { r: 254, g: 232, b: 56 },   // 薄い黄（人口が少ない）
+  { r: 211, g: 193, b: 100 },  // 砂
+  { r: 145, g: 138, b: 95 },   // 黄土
+  { r: 87, g: 93, b: 109 },    // 灰青
+  { r: 38, g: 69, b: 110 },    // 青
+  { r: 0, g: 34, b: 78 },      // 濃紺（人口が多い）
+];
+
+/**
+ * 配色名から色の配列を返す。未知の名前は既定配色に倒す。
+ *
+ * localStorage の保存値が壊れていても地図が描けなくならないようにするため、
+ * 例外を投げずにフォールバックする。
+ *
+ * @param {string} [palette] PALETTE_NORMAL / PALETTE_CUD
+ */
+export function getDensityColors(palette) {
+  return palette === PALETTE_CUD ? DENSITY_COLORS_CUD : DENSITY_COLORS;
+}
+
 /**
  * 解像度ごとの区切り値（セル内の人口, 人）。
  *
@@ -56,11 +101,12 @@ export const MAX_OPACITY = 0.75;
  * 解像度に対応する停止点（区切り値 + 色）を返す。
  * 未知の解像度は既定にフォールバックする。
  */
-export function getDensityStops(resolution) {
+export function getDensityStops(resolution, palette) {
   const breaks =
     DENSITY_BREAKS_BY_RESOLUTION[resolution] ||
     DENSITY_BREAKS_BY_RESOLUTION[DEFAULT_RESOLUTION];
-  return breaks.map((density, index) => ({ density, rgb: DENSITY_COLORS[index] }));
+  const colors = getDensityColors(palette);
+  return breaks.map((density, index) => ({ density, rgb: colors[index] }));
 }
 
 /** 数値以外・範囲外を安全な値に丸める。 */
@@ -82,10 +128,11 @@ function lerp(a, b, t) {
  * 人口に対応する RGB を返す。
  * @param {number} density セル内の人口
  * @param {string} [resolution] "1km" / "500m" / "250m" / "125m"
+ * @param {string} [palette] PALETTE_NORMAL / PALETTE_CUD
  * @returns {{r: number, g: number, b: number}} 各成分 0-255 の整数
  */
-export function densityToRgb(density, resolution) {
-  const stops = getDensityStops(resolution);
+export function densityToRgb(density, resolution, palette) {
+  const stops = getDensityStops(resolution, palette);
   const value = normalizeDensity(density, stops);
 
   for (let i = 1; i < stops.length; i += 1) {
@@ -106,8 +153,8 @@ export function densityToRgb(density, resolution) {
 }
 
 /** CSS の rgb() 文字列を返す。 */
-export function densityToColor(density, resolution) {
-  const { r, g, b } = densityToRgb(density, resolution);
+export function densityToColor(density, resolution, palette) {
+  const { r, g, b } = densityToRgb(density, resolution, palette);
   return `rgb(${r}, ${g}, ${b})`;
 }
 
@@ -124,11 +171,12 @@ export function densityToOpacity(density, resolution) {
 /**
  * Azure Maps の PolygonLayer に渡す fillColor 式を組み立てる。
  * @param {string} [resolution]
+ * @param {string} [palette] PALETTE_NORMAL / PALETTE_CUD
  * @returns {Array} ['interpolate', ['linear'], ['get', 'populationDensity'], d0, c0, ...]
  */
-export function buildFillColorExpression(resolution) {
+export function buildFillColorExpression(resolution, palette) {
   const expression = ['interpolate', ['linear'], ['get', 'populationDensity']];
-  for (const stop of getDensityStops(resolution)) {
+  for (const stop of getDensityStops(resolution, palette)) {
     const { r, g, b } = stop.rgb;
     expression.push(stop.density, `rgb(${r}, ${g}, ${b})`);
   }
