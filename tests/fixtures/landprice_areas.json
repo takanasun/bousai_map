@@ -1,0 +1,32 @@
+[
+  {
+    "town": "千鳥町",
+    "avgPricePerSqm": 92000,
+    "minPricePerSqm": 92000,
+    "maxPricePerSqm": 92000,
+    "landPoints": 1,
+    "sheltersNearby": 0.0,
+    "hospitalsNearby": 0.0,
+    "radiusKm": 0.8
+  },
+  {
+    "town": "中瀬",
+    "avgPricePerSqm": 272000,
+    "minPricePerSqm": 272000,
+    "maxPricePerSqm": 272000,
+    "landPoints": 1,
+    "sheltersNearby": 2.0,
+    "hospitalsNearby": 1.0,
+    "radiusKm": 0.8
+  },
+  {
+    "town": "駅前本町",
+    "avgPricePerSqm": 4850000,
+    "minPricePerSqm": 4850000,
+    "maxPricePerSqm": 4850000,
+    "landPoints": 1,
+    "sheltersNearby": 3.0,
+    "hospitalsNearby": 2.0,
+    "radiusKm": 0.8
+  }
+]
