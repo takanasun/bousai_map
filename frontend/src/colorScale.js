@@ -63,6 +63,81 @@ export const DENSITY_COLORS_CUD = [
 ];
 
 /**
+ * ストライプにする段の番号。青(T 東西線スカイ)。
+ *
+ * CUD 配色では青と緑(C 千代田線グリーン)が隣接しており、不透明度を
+ * 0.35 まで下げた状態では色だけの判別が苦しい。白とのストライプにして
+ * 色以外の手がかりを足す。
+ *
+ * 東京メトロが路線記号(G/M/H/T/C/Y/Z/N/F)を足したのと同じ考え方で、
+ * 「色だけに情報を載せない」という CUD の基本に沿う。
+ */
+export const STRIPED_BAND_INDEX = 3;
+
+/** スプライトに登録する画像IDの接頭辞。他の画像と衝突させない。 */
+export const PATTERN_ID_PREFIX = 'mesh-pattern-';
+
+/** タイルの一辺(px)。小さすぎるとぼやけ、大きすぎると縞が粗くなる。 */
+const TILE_SIZE = 16;
+
+/** 段ごとの画像IDを返す。 */
+export function patternIds() {
+  return DENSITY_COLORS_CUD.map((_, index) => `${PATTERN_ID_PREFIX}${index}`);
+}
+
+/**
+ * 塗りタイルを SVG の data URI で返す。
+ *
+ * @param {{r:number,g:number,b:number}} color 段の色
+ * @param {boolean} striped true なら白地に斜めの縞、false なら単色
+ * @returns {string} `map.imageSprite.add()` に渡せる data URI
+ */
+export function patternTileDataUri(color, striped) {
+  const c = color || { r: 0, g: 0, b: 0 };
+  const fill = `rgb(${c.r},${c.g},${c.b})`;
+  const n = TILE_SIZE;
+
+  let body;
+  if (striped) {
+    // 45度の縞。タイルの外へはみ出す分を反対側にも描くことで、
+    // 繰り返したときに継ぎ目が出ないようにする。
+    const line = `M-${n} ${n} L${n} -${n} M0 ${n * 2} L${n * 2} 0 M-${n * 2} 0 L0 -${n * 2}`;
+    body =
+      `<rect width="${n}" height="${n}" fill="#ffffff"/>` +
+      `<path d="${line}" stroke="${fill}" stroke-width="${n / 2}"/>`;
+  } else {
+    body = `<rect width="${n}" height="${n}" fill="${fill}"/>`;
+  }
+
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${n}" height="${n}" ` +
+    `viewBox="0 0 ${n} ${n}">${body}</svg>`;
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+}
+
+/**
+ * Azure Maps の PolygonLayer に渡す fillPattern 式を組み立てる。
+ *
+ * 画像は補間できないため interpolate ではなく step を使う。
+ * このため色は段ごとに切り替わり、既定配色のような連続変化にはならない。
+ *
+ * @param {string} [resolution]
+ * @returns {Array} ['step', ['get','populationDensity'], id0, break1, id1, ...]
+ */
+export function buildFillPatternExpression(resolution) {
+  const breaks =
+    DENSITY_BREAKS_BY_RESOLUTION[resolution] ||
+    DENSITY_BREAKS_BY_RESOLUTION[DEFAULT_RESOLUTION];
+  const ids = patternIds();
+
+  const expression = ['step', ['get', 'populationDensity'], ids[0]];
+  for (let i = 1; i < breaks.length; i += 1) {
+    expression.push(breaks[i], ids[i]);
+  }
+  return expression;
+}
+
+/**
  * 配色名から色の配列を返す。未知の名前は既定配色に倒す。
  *
  * localStorage の保存値が壊れていても地図が描けなくならないようにするため、
