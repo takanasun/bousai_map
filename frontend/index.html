@@ -19,7 +19,29 @@
 </head>
 <body>
   <header class="app-header">
+    <button
+      type="button"
+      id="drawer-toggle"
+      class="drawer-toggle"
+      aria-expanded="false"
+      aria-controls="drawer"
+      aria-label="検索条件を開く"
+    >
+      <span class="drawer-toggle-bars" aria-hidden="true"></span>
+    </button>
     <h1>災害時医療・インフラ予測マップ</h1>
+  </header>
+
+  <!-- 引き出しを開いている間、背後の地図を触れないようにする幕 -->
+  <div id="drawer-backdrop" class="drawer-backdrop" hidden></div>
+
+  <aside id="drawer" class="drawer" aria-label="検索条件" hidden>
+    <div class="drawer-header">
+      <h2>検索条件</h2>
+      <button type="button" id="drawer-close" class="drawer-close" aria-label="検索条件を閉じる">
+        <span aria-hidden="true">×</span>
+      </button>
+    </div>
 
     <div class="controls">
       <fieldset class="control-group">
@@ -41,8 +63,6 @@
         <span id="reference-label" class="count"></span>
       </fieldset>
 
-      <!-- 避難所の設定枠と、その右隣に企画意図を開く人アイコンを並べる -->
-      <div class="control-group-row">
       <fieldset class="control-group">
         <legend>避難所</legend>
         <label class="checkbox">
@@ -62,18 +82,6 @@
         </label>
         <span id="shelter-count" class="count"></span>
       </fieldset>
-        <button
-          type="button"
-          id="about-toggle"
-          class="about-toggle"
-          aria-expanded="false"
-          aria-controls="about-modal"
-          title="このマップを作った理由"
-        >
-          <span aria-hidden="true">🧍</span>
-          <span class="visually-hidden">このマップを作った理由を表示</span>
-        </button>
-      </div>
 
       <fieldset class="control-group">
         <legend>医療機関</legend>
@@ -128,8 +136,20 @@
         </label>
         <span id="toilet-count" class="count"></span>
       </fieldset>
+
+      <!-- 企画意図。検索条件ではないので最後に置く -->
+      <button
+        type="button"
+        id="about-toggle"
+        class="about-toggle"
+        aria-expanded="false"
+        aria-controls="about-modal"
+      >
+        <span aria-hidden="true">🧍</span>
+        このマップを作った理由
+      </button>
     </div>
-  </header>
+  </aside>
 
   <p id="status" class="status" role="status" aria-live="polite"></p>
 

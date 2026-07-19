@@ -31,6 +31,11 @@ import {
   buildFillColorExpression,
   PALETTE_NORMAL,
   PALETTE_CUD,
+  DENSITY_COLORS_CUD,
+  STRIPED_BAND_INDEX,
+  patternIds,
+  patternTileDataUri,
+  buildFillPatternExpression,
   buildFillOpacityExpression,
   getDensityStops,
   densityToColor,
@@ -76,6 +81,7 @@ import {
   VIEW_RADIUS_KM,
 } from './mapConfig.js';
 import { ABOUT_TITLE, ABOUT_PARAGRAPHS, nextAboutState } from './about.js';
+import { nextDrawerState, shouldCloseOnSelection } from './drawer.js';
 
 /** 距離計算とAIへの質問の起点。現在地取得で自宅座標から切り替わる。 */
 const referencePoint = createReferencePoint();
@@ -160,11 +166,24 @@ function renderLegend(resolution) {
   const list = document.getElementById('legend-items');
   if (!list) return;
   list.innerHTML = '';
-  for (const stop of getDensityStops(resolution, densityPalette)) {
+  const stops = getDensityStops(resolution, densityPalette);
+  for (const [index, stop] of stops.entries()) {
     const li = document.createElement('li');
     const swatch = document.createElement('span');
     swatch.className = 'legend-swatch';
     swatch.style.backgroundColor = densityToColor(stop.density, resolution, densityPalette);
+
+    // 地図でストライプにしている段は凡例も同じ絵柄にする。
+    // 凡例と地図の見た目がずれると、そのまま誤読につながるため。
+    const striped =
+      densityPalette === PALETTE_CUD && index === STRIPED_BAND_INDEX;
+    if (striped) {
+      swatch.style.backgroundImage =
+        `url("${patternTileDataUri(stop.rgb, true)}")`;
+      swatch.style.backgroundSize = '8px 8px';
+    } else {
+      swatch.style.backgroundImage = '';
+    }
     const label = document.createElement('span');
     label.textContent = `${stop.density.toLocaleString()} 人`;
     li.append(swatch, label);
@@ -183,12 +202,45 @@ function renderLegend(resolution) {
  */
 function applyMeshColorScale(layer, resolution) {
   if (layer) {
-    layer.setOptions({
+    const options = {
       fillColor: buildFillColorExpression(resolution, densityPalette),
       fillOpacity: buildFillOpacityExpression(resolution, densityPalette),
-    });
+    };
+
+    // CUD 配色のときだけ塗りタイルを使う。青の段を白とのストライプにして
+    // 隣の緑と色以外でも見分けられるようにするため。
+    // fillPattern を指定すると fillColor より優先されるので、
+    // 既定配色に戻すときは明示的に外す（undefined では消えない）。
+    options.fillPattern = densityPalette === PALETTE_CUD
+      ? buildFillPatternExpression(resolution)
+      : null;
+
+    layer.setOptions(options);
   }
   renderLegend(resolution);
+}
+
+/**
+ * メッシュの塗りタイルをスプライトへ登録する。
+ *
+ * 登録前に fillPattern を指定しても描画されないため、地図の初期化直後に
+ * 一度だけ済ませておく。失敗しても地図自体は動くよう握り潰す。
+ */
+async function registerMeshPatterns(map) {
+  try {
+    await Promise.all(
+      patternIds().map((id, index) =>
+        map.imageSprite.add(
+          id,
+          patternTileDataUri(DENSITY_COLORS_CUD[index], index === STRIPED_BAND_INDEX),
+        ),
+      ),
+    );
+    return true;
+  } catch (error) {
+    console.error('メッシュの塗りパターン登録に失敗しました', error);
+    return false;
+  }
 }
 
 /** 地価の凡例を、実データの区切りに合わせて描く。 */
@@ -730,6 +782,8 @@ async function main() {
         ]);
 
       meshSource.add(meshToFeatureCollection(meshResult.items));
+      // 画像の登録は色の適用より先に済ませる（未登録だと塗られない）
+      await registerMeshPatterns(map);
       applyMeshColorScale(meshLayer, meshResult.resolution);
       renderResolutionOptions(meshResult.availableResolutions, meshResult.resolution);
 
@@ -1115,6 +1169,56 @@ function setupAbout() {
   });
 }
 
+/**
+ * 検索条件の引き出し（ハンバーガーメニュー）を配線する。
+ *
+ * 地図やAPIに依存しないため main() の外で先に呼ぶ。
+ * データ取得が失敗しても、条件パネルの開閉だけは動く状態にしておく。
+ */
+function setupDrawer() {
+  const toggle = document.getElementById('drawer-toggle');
+  const drawer = document.getElementById('drawer');
+  const backdrop = document.getElementById('drawer-backdrop');
+  const close = document.getElementById('drawer-close');
+  if (!toggle || !drawer || !backdrop || !close) return;
+
+  const setOpen = (open) => {
+    toggle.setAttribute('aria-expanded', String(open));
+    toggle.setAttribute('aria-label', open ? '検索条件を閉じる' : '検索条件を開く');
+    drawer.hidden = !open;
+    backdrop.hidden = !open;
+    // 開いたら中へ、閉じたらボタンへフォーカスを戻す。
+    // キーボード操作で背後の地図に迷い込まないようにするため。
+    if (open) {
+      close.focus();
+    } else {
+      toggle.focus();
+    }
+  };
+
+  toggle.addEventListener('click', () => {
+    setOpen(nextDrawerState(toggle.getAttribute('aria-expanded')));
+  });
+  close.addEventListener('click', () => setOpen(false));
+  backdrop.addEventListener('click', () => setOpen(false));
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && !drawer.hidden) setOpen(false);
+  });
+
+  // 狭い画面では引き出しが地図を覆うため、条件を変えたら閉じて結果を見せる。
+  // 広い画面では地図と並ぶので開いたままにする（連続操作を邪魔しない）。
+  drawer.addEventListener('change', () => {
+    if (shouldCloseOnSelection(window.innerWidth)) setOpen(false);
+  });
+
+  // 住所検索の送信でも同様に閉じる（結果が地図に出るため）
+  drawer.addEventListener('submit', () => {
+    if (shouldCloseOnSelection(window.innerWidth)) setOpen(false);
+  });
+}
+
+setupDrawer();
 setupAbout();
 
 main().catch((error) => {
