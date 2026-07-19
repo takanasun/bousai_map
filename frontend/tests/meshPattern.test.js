@@ -51,11 +51,26 @@ describe('patternTileDataUri', () => {
     expect(svg).not.toContain('<path');
   });
 
-  it('ストライプ指定ありなら白地に色の線を引く', () => {
+  it('ストライプ指定ありなら白地に色の縞を塗る', () => {
     const svg = decode(patternTileDataUri({ r: 0, g: 155, b: 191 }, true));
-    expect(svg).toContain('#ffffff');       // 下地の白
-    expect(svg).toContain('rgb(0,155,191)'); // 線の色
+    expect(svg).toContain('#ffffff');        // 下地の白
+    expect(svg).toContain('rgb(0,155,191)'); // 縞の色
     expect(svg).toContain('<path');
+  });
+
+  it('縞は線ではなく領域の塗りで描く（継ぎ目対策）', () => {
+    // 線(stroke)方式は、タイル外へはみ出した分の折り返しが合わず
+    // 縞が途切れて風車状の模様になった。同じ失敗に戻らないよう固定する。
+    const svg = decode(patternTileDataUri({ r: 0, g: 155, b: 191 }, true));
+    expect(svg).not.toContain('stroke');
+  });
+
+  it('縞は2つの領域で構成される（タイル境界で条件が連続するため）', () => {
+    // 「(x+y) を n で割った余りが n/2 未満」の領域は、タイル内で
+    // 左上の三角形と右下の四角形の2つに分かれる。
+    const svg = decode(patternTileDataUri({ r: 0, g: 155, b: 191 }, true));
+    expect(svg.match(/<path/g)).toHaveLength(2);
+    expect(svg).toContain('Z');  // 閉じた領域
   });
 
   it('タイルは正方形（繰り返しても継ぎ目が出ないように）', () => {

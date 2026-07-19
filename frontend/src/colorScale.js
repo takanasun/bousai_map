@@ -99,12 +99,17 @@ export function patternTileDataUri(color, striped) {
 
   let body;
   if (striped) {
-    // 45度の縞。タイルの外へはみ出す分を反対側にも描くことで、
-    // 繰り返したときに継ぎ目が出ないようにする。
-    const line = `M-${n} ${n} L${n} -${n} M0 ${n * 2} L${n * 2} 0 M-${n * 2} 0 L0 -${n * 2}`;
+    // 「(x + y) を n で割った余りが n/2 未満」の領域を塗ると 45度の縞になる。
+    // 条件がタイル境界をまたいで連続するため、繰り返しても継ぎ目が出ない。
+    //
+    // 線(stroke)で描く方式は、タイルの外へはみ出した分の折り返しが合わず
+    // 縞が途切れて風車のような模様になった（実際にそうなった）。
+    // 領域を多角形で塗る方式なら境界条件がそのまま成立する。
+    const h = n / 2;
     body =
       `<rect width="${n}" height="${n}" fill="#ffffff"/>` +
-      `<path d="${line}" stroke="${fill}" stroke-width="${n / 2}"/>`;
+      `<path d="M0 0 L${h} 0 L0 ${h} Z" fill="${fill}"/>` +
+      `<path d="M${n} 0 L${n} ${h} L${h} ${n} L0 ${n} Z" fill="${fill}"/>`;
   } else {
     body = `<rect width="${n}" height="${n}" fill="${fill}"/>`;
   }
